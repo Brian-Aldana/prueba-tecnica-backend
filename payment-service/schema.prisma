@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MerchantStatus {
+  active
+  inactive
+}
+
+enum Currency {
+  GTQ
+  COP
+  USD
+}
+
+enum TransactionType {
+  payin
+  payout
+}
+
+enum TransactionStatus {
+  pending
+  approved
+  rejected
+  failed
+  completed
+}
+
+enum SettlementStatus {
+  pending
+  processed
+  paid
+}
+
+model Merchant {
+  id         String         @id @default(uuid())
+  name       String
+  email      String         @unique
+  api_key    String         @unique
+  status     MerchantStatus @default(active)
+  created_at DateTime       @default(now())
+  updated_at DateTime       @updatedAt
+
+  transactions Transaction[]
+  settlements  Settlement[]
+
+  @@map("merchants")
+}
+
+model Transaction {
+  id          String            @id @default(uuid())
+  merchant_id String
+  amount      Decimal           @db.Decimal(12, 2)
+  currency    Currency
+  type        TransactionType
+  status      TransactionStatus @default(pending)
+  reference   String            @unique
+  metadata    Json?
+  created_at  DateTime          @default(now())
+  updated_at  DateTime          @updatedAt
+
+  merchant               Merchant               @relation(fields: [merchant_id], references: [id])
+  settlement_transaction SettlementTransaction?
+
+  @@index([merchant_id])
+  @@index([status])
+  @@index([created_at])
+  @@index([merchant_id, status])
+  @@index([created_at, status])
+  @@map("transactions")
+}
+
+model Settlement {
+  id                String           @id @default(uuid())
+  merchant_id       String
+  total_amount      Decimal          @db.Decimal(14, 2)
+  transaction_count Int
+  status            SettlementStatus @default(pending)
+  period_start      DateTime
+  period_end        DateTime
+  created_at        DateTime         @default(now())
+
+  merchant                Merchant                @relation(fields: [merchant_id], references: [id])
+  settlement_transactions SettlementTransaction[]
+
+  @@index([merchant_id])
+  @@index([status])
+  @@index([merchant_id, status])
+  @@map("settlements")
+}
+
+model SettlementTransaction {
+  settlement_id  String
+  transaction_id String @unique
+
+  settlement  Settlement  @relation(fields: [settlement_id], references: [id])
+  transaction Transaction @relation(fields: [transaction_id], references: [id])
+
+  @@id([settlement_id, transaction_id])
+  @@map("settlement_transactions")
+}
