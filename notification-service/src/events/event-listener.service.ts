@@ -67,7 +67,7 @@ export class EventListenerService implements OnModuleInit, OnModuleDestroy {
         transaction_id: event.transaction_id,
         merchant_id: event.merchant_id,
         event_type: event.event_type,
-        payload: event.payload,
+        payload: JSON.parse(JSON.stringify(event.payload)),
         status: 'pending',
       },
     });
