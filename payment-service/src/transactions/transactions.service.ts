@@ -58,7 +58,7 @@ export class TransactionsService {
         currency: dto.currency,
         type: dto.type,
         reference,
-        metadata: dto.metadata ?? undefined,
+        metadata: dto.metadata ? JSON.parse(JSON.stringify(dto.metadata)) : undefined,
       },
     });
   }
