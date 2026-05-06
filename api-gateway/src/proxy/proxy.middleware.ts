@@ -8,14 +8,14 @@ const NOTIFICATION_SERVICE_URL = process.env.NOTIFICATION_SERVICE_URL ?? 'http:/
 const paymentCircuit = new CircuitBreaker({ failureThreshold: 5, timeout: 30_000 });
 const notificationCircuit = new CircuitBreaker({ failureThreshold: 5, timeout: 30_000 });
 
-function getDownstreamUrl(path: string): { url: string; circuit: CircuitBreaker } | null {
-  if (path.startsWith('/api/v1/transactions') || path.startsWith('/api/v1/settlements')) {
-    const downstreamPath = path.replace('/api/v1', '/api');
+function getDownstreamUrl(originalUrl: string): { url: string; circuit: CircuitBreaker } | null {
+  if (originalUrl.startsWith('/api/v1/transactions') || originalUrl.startsWith('/api/v1/settlements')) {
+    const downstreamPath = originalUrl.replace('/api/v1', '/api');
     return { url: `${PAYMENT_SERVICE_URL}${downstreamPath}`, circuit: paymentCircuit };
   }
 
-  if (path.startsWith('/api/v1/notifications')) {
-    const downstreamPath = path.replace('/api/v1', '/api');
+  if (originalUrl.startsWith('/api/v1/notifications')) {
+    const downstreamPath = originalUrl.replace('/api/v1', '/api');
     return { url: `${NOTIFICATION_SERVICE_URL}${downstreamPath}`, circuit: notificationCircuit };
   }
 
@@ -23,7 +23,7 @@ function getDownstreamUrl(path: string): { url: string; circuit: CircuitBreaker 
 }
 
 export async function proxyMiddleware(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const target = getDownstreamUrl(req.path);
+  const target = getDownstreamUrl(req.originalUrl);
 
   if (!target) {
     return next();
